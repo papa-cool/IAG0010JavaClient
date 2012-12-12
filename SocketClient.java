@@ -28,22 +28,14 @@ public class SocketClient {
     private BufferedOutputStream out_socket;
     private BufferedInputStream in_socket;
 
-    SocketClient() {
-        try {
+    SocketClient() throws ConnectException, UnknownHostException, SocketException, IOException {
             socket = new Socket(address, port);
             out_socket = new BufferedOutputStream(socket.getOutputStream(), 44);
             in_socket = new BufferedInputStream(socket.getInputStream(), 2048);
             socket.setSoTimeout(6000);
-        } catch (ConnectException ex) {
-            System.out.println("Impossible de se connecter !");
-            Main.windowControl.writeInTextArea("Impossible de se connecter !");
-        } catch (SocketException ex) {
-            Logger.getLogger(SocketClient.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (UnknownHostException ex) {
-            Logger.getLogger(SocketClient.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (IOException ex) {
-            Logger.getLogger(SocketClient.class.getName()).log(Level.SEVERE, null, ex);
-        }
+            System.out.println("The downloading start now.\nThe downloaded file will be launched automaticaly.");
+            Main.windowControl.writeInTextArea("The downloading start now.\nThe downloaded file will be launched automaticaly.");
+        
     }
     
     public void close() {

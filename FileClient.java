@@ -22,17 +22,13 @@ public class FileClient {
     
     private File file;
     private BufferedOutputStream out_file;
-    //private BufferedWriter in_file;
     
-    FileClient(String pathname){
-        try {
+    FileClient(String pathname) throws IOException{
             file = new File(pathname);
             file.createNewFile();
+            System.out.println("The downloaded file will be saved in the following address :\n"+pathname);
+            Main.windowControl.writeInTextArea("The downloaded file will be saved in the following address :\n"+pathname);
             out_file = new BufferedOutputStream(new FileOutputStream(file, true), 2048);
-            //in_file = new BufferedWriter(new FileWriter(file, true), 2048); // true : Le buffer est ajouté à la fin du fichier. 2048 : Taille du buffer.
-        } catch (IOException ex) {
-            Logger.getLogger(FileClient.class.getName()).log(Level.SEVERE, null, ex);
-        }
     }
     
     public void writeInFile(byte[] buffer){
@@ -41,29 +37,17 @@ public class FileClient {
         } catch (IOException ex) {
             Logger.getLogger(FileClient.class.getName()).log(Level.SEVERE, null, ex);
         }
-            
-            /*try {
-                in_file.write(addString);
-                in_file.flush();
-                System.out.println("Write string in the file.");
-            } catch (IOException ex) {
-                System.out.println("write() failed");
-                Logger.getLogger(FileClient.class.getName()).log(Level.SEVERE, null, ex);
-            }*/
     }
     
-    public void closeBufferedWriter(){
-        try {
-            System.out.println("Close BufferWriter of the file.");
+    public void close() throws IOException{
             out_file.close();
-            Main.windowControl.writeInTextArea("Close BufferWriter of the file.");
-        } catch (IOException ex) {
-            Logger.getLogger(FileClient.class.getName()).log(Level.SEVERE, null, ex);
-        }
+            Main.fileClient = null;
+            System.out.println("Close file.");
+            Main.windowControl.writeInTextArea("Close file.");
     }
 
     
-    public void openFile(){
+    public void launchFileWithDefaultApplication(){
         if (this.file.getPath() == null)
             throw new NullPointerException ();
         if (!Desktop.isDesktopSupported ())
@@ -77,8 +61,5 @@ public class FileClient {
         catch (Exception e) {
             e.printStackTrace ();
         }
-    }
-    
-    public void closeFile(){
     }
 }

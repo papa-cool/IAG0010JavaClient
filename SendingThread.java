@@ -5,6 +5,7 @@
 package IAG0010JavaClient;
 
 import java.io.IOException;
+import java.net.SocketException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -30,10 +31,17 @@ public class SendingThread extends Thread{
             }
         } catch (InterruptedException ex) {
             System.out.println("The sendingThread has been interrupted");
+            return;
+        } catch (SocketException ex) {
+            if(this.isInterrupted())
+                return;
+            Logger.getLogger(SendingThread.class.getName()).log(Level.SEVERE, null, ex);
+            Main.windowControl.informConnectionAbort();
         } catch (IOException ex) {
             Logger.getLogger(SendingThread.class.getName()).log(Level.SEVERE, null, ex);
+            Main.windowControl.informFailedSystem();
         }
-        Main.socketClient.close();
-        return;
+        if(Main.socketClient != null)
+            Main.socketClient.close();
     }    
 }

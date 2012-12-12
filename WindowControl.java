@@ -12,6 +12,12 @@ import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
+import java.io.IOException;
+import java.net.ConnectException;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -26,139 +32,201 @@ import javax.swing.JTextArea;
  *
  * @author Emmanuel
  */
-public class WindowControl extends JFrame{
-    
-    private JTextArea jTextArea = new JTextArea("Welcome in IAG0010JavaClient\n", 15,30);
-    private JScrollPane jScrollPane = new JScrollPane(jTextArea, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+public class WindowControl extends JFrame {
+
+    private JTextArea jTextArea = new JTextArea("Welcome in IAG0010JavaClient\n", 20, 35);
+    private JScrollPane jScrollPane = new JScrollPane(jTextArea, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
     private JButton buttonConnect = new JButton("Connect");
-    private JButton buttonDisconnect = new JButton("Disconnect");
+    private JButton buttonBreak = new JButton("Disconnect");
     private JPanel panelConnection = new JPanel();
     private JButton buttonOpen = new JButton("Open");
     private JButton buttonClose = new JButton("Close");
     private JPanel panelFile = new JPanel();
     private JButton buttonExit = new JButton("Exit");
-    
-    
-    public WindowControl(){
+
+    public WindowControl() {
         // Configuration fenêtre
         this.setTitle("IAG0010Client");
-        this.setSize(500,750);
+        this.setSize(600, 750);
         this.setLocationRelativeTo(null);
-        this.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE );
-        this.addWindowListener( new WindowAdapter(){
-            public void windowClosing(WindowEvent e){ exitApplication(); }
+        this.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        this.addWindowListener(new WindowAdapter() {
+            // windowsClosing when the X button is clicked.
+            @Override
+            public void windowClosing(WindowEvent e) {
+                exitApplication();
+            }
         });
         this.getContentPane().setLayout(new BoxLayout(this.getContentPane(), BoxLayout.Y_AXIS));
-        
-        
+
+
+        buttonConnect.setEnabled(false);
+        buttonBreak.setEnabled(false);
+        buttonClose.setEnabled(false);
+
+
         // Button Listener
-        
-        
+
+
         buttonConnect.addMouseListener(new MouseAdapter() {
+            @Override
             public void mouseClicked(MouseEvent mouseEvent) {
-                System.out.println("Connect");
-                Main.socketClient = new SocketClient();
-                if (Main.socketClient.isConnected()){
+                try {
+                    System.out.println("Connect");
+                    Main.socketClient = new SocketClient();
                     buttonConnect.setEnabled(false);
-                    buttonDisconnect.setEnabled(true);
+                    buttonBreak.setEnabled(true);
                     Main.receivingThread = new ReceivingThread();
                     Main.sendingThread = new SendingThread();
+                } catch (ConnectException ex) {
+                    JOptionPane.showMessageDialog(WindowControl.this, "Check that the server is listening the network.", "Connection impossible !", JOptionPane.ERROR_MESSAGE);
+                    System.out.println("Impossible to connect the client to the server !\nCheck that the server is listening the network.");
+                } catch (UnknownHostException ex) {
+                    Logger.getLogger(WindowControl.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (SocketException ex) {
+                    Logger.getLogger(WindowControl.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (IOException ex) {
+                    Logger.getLogger(WindowControl.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
         });
-        buttonDisconnect.addMouseListener(new MouseAdapter() {
+        buttonBreak.addMouseListener(new MouseAdapter() {
+            @Override
             public void mouseClicked(MouseEvent mouseEvent) {
                 System.out.println("Diconnect");
                 WindowControl.this.writeInTextArea("Disconnection");
                 Main.socketClient.close();
-                if (Main.socketClient.isConnected()){
+                if (Main.socketClient.isConnected()) {
                     WindowControl.this.writeInTextArea("Client is disconnected from the server.");
-                    buttonDisconnect.setEnabled(false);
+                    buttonBreak.setEnabled(false);
                     buttonConnect.setEnabled(true);
                 }
             }
         });
         buttonOpen.addMouseListener(new MouseAdapter() {
+            @Override
             public void mouseClicked(MouseEvent mouseEvent) {
-                System.out.println("Open");
-                JFileChooser fileChooser = new JFileChooser();
-                fileChooser.setDialogTitle("Choose the target directory to download the file !");
-                fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-                fileChooser.showOpenDialog(WindowControl.this);
-                System.out.println("The downloaded file will be save in the following adress :\n"+fileChooser.getSelectedFile()+File.separator+"TTU.doc");
-                WindowControl.this.writeInTextArea("The downloaded file will be save in the following adress :\n"+fileChooser.getSelectedFile()+File.separator+"TTU.doc");
-                Main.fileClient = new FileClient(fileChooser.getSelectedFile()+File.separator+"TTU.doc");
-                buttonConnect.setEnabled(true);
-                buttonOpen.setEnabled(false);
+                try {
+                    System.out.println("Open");
+                    JFileChooser fileChooser = new JFileChooser();
+                    fileChooser.setDialogTitle("Choose the target directory to download the file !");
+                    fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+                    fileChooser.showOpenDialog(WindowControl.this);
+                    Main.fileClient = new FileClient(fileChooser.getSelectedFile() + File.separator + "TTU.doc");
+                    buttonConnect.setEnabled(true);
+                    buttonOpen.setEnabled(false);
+                } catch (IOException ex) {
+                    Logger.getLogger(WindowControl.class.getName()).log(Level.SEVERE, null, ex);
+                    WindowControl.this.informDirectoryNotExist();
+                }
+                
             }
         });
         buttonClose.addMouseListener(new MouseAdapter() {
+            @Override
             public void mouseClicked(MouseEvent mouseEvent) {
-                System.out.println("Close");
-                Main.fileClient.closeBufferedWriter();
-                buttonClose.setEnabled(false);
+                try {
+                    Main.fileClient.close();
+                    buttonClose.setEnabled(false);
+                    buttonOpen.setEnabled(true);
+                } catch (IOException ex) {
+                    Logger.getLogger(WindowControl.class.getName()).log(Level.SEVERE, null, ex);
+                }
             }
         });
         buttonExit.addMouseListener(new MouseAdapter() {
+            @Override
             public void mouseClicked(MouseEvent mouseEvent) {
                 exitApplication();
             }
         });
-        
-        buttonConnect.setEnabled(false);
-        buttonDisconnect.setEnabled(false);
-        buttonClose.setEnabled(false);
-        
-        
+
+
         // Template
-        
-        
-        jTextArea.setPreferredSize(new Dimension(500, 500));
+
+
+        jTextArea.setPreferredSize(new Dimension(600, 500));
         jScrollPane.setViewportView(jTextArea);
         jTextArea.setLineWrap(true);
         this.getContentPane().add(jScrollPane);
-        
-        panelConnection.setLayout(new FlowLayout(FlowLayout.CENTER,50,5));
+
+        panelConnection.setLayout(new FlowLayout(FlowLayout.CENTER, 50, 5));
         panelConnection.setBorder(BorderFactory.createTitledBorder("Connection"));
         panelConnection.add(buttonConnect);
-        panelConnection.add(buttonDisconnect);
+        panelConnection.add(buttonBreak);
         this.getContentPane().add(panelConnection);
-        
-        panelFile.setLayout(new FlowLayout(FlowLayout.CENTER,50,5));
+
+        panelFile.setLayout(new FlowLayout(FlowLayout.CENTER, 50, 5));
         panelFile.setBorder(BorderFactory.createTitledBorder("Data File"));
         panelFile.add(buttonOpen);
         panelFile.add(buttonClose);
         this.getContentPane().add(panelFile);
-        
+
         this.getContentPane().add(buttonExit);
-        
+
         this.pack();
         this.setVisible(true);
     }
-    
-    public void informEndOfDownloading(){
+
+    // This funciton is called by the ReceivingThread just before completing.
+    public void informEndOfDownloading() {
         buttonConnect.setEnabled(true);
-        buttonDisconnect.setEnabled(false);
+        buttonBreak.setEnabled(false);
         buttonClose.setEnabled(true);
-                
+
     }
-    
+
+    // This function permit to write a string in the JTextArea.
     public void writeInTextArea(String addString) {
         System.out.println("String add in the text area.");
-        this.jTextArea.append(addString+"\n");
+        this.jTextArea.append(addString + "\n");
         this.jTextArea.setCaretPosition(this.jTextArea.getText().length());
     }
-    
+
+    private void closeApplication() {
+        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        if (Main.socketClient != null) {
+            Main.socketClient.close(); // Closing of the socket and interruption of sending and receiving threads.
+        }
+        if (Main.fileClient != null) {
+            try {
+                Main.fileClient.close(); // Closing of the file.
+            } catch (IOException ex) {
+                Logger.getLogger(WindowControl.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        } // Closing of the file.
+        WindowControl.this.dispose();
+    }
+
+    // This function is called when the buttonExit is clicked.
     public void exitApplication() {
-        System.out.println("Exit");
-            WindowControl.this.writeInTextArea("Exit system");
-            int result = JOptionPane.showConfirmDialog(WindowControl.this,"Are you sure you want to exit the application?","Exit IAG0010Client",JOptionPane.YES_NO_OPTION);
-            if (result == JOptionPane.YES_OPTION){
-               WindowControl.this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-               if (Main.socketClient != null)
-                    Main.socketClient.close();
-               WindowControl.this.dispose();
+        WindowControl.this.writeInTextArea("Exit system");
+        // Opening of a JOptionPane to confirm Exit.
+        int result = JOptionPane.showConfirmDialog(this, "Are you sure you want to exit the application?", "Exit IAG0010Client", JOptionPane.YES_NO_OPTION);
+        if (result == JOptionPane.YES_OPTION) {
+            this.closeApplication();
         }
     }
+    
+    
+    // Exception handle
+    
+    
+    // Called when a IOException for the file is raised.
+    public void informDirectoryNotExist(){
+        JOptionPane.showMessageDialog(this, "The previous directory doesn't exist.\nYou should select an existing directory.", "Directory doesn't exist !", JOptionPane.ERROR_MESSAGE);
+    }
+    
+    // Called when a SocketException is raised
+    public void informConnectionAbort(){
+        this.informEndOfDownloading();
+        JOptionPane.showMessageDialog(this, "The connection has been interrupted.\nYou should reconnect the Client to the server.", "Connection abort", JOptionPane.ERROR_MESSAGE);
+    }
+    
+    // Called when a IOException for the socket is raised.
+    // This Exception shouldn't be raised
+    public void informFailedSystem(){
+        this.informEndOfDownloading();
+        JOptionPane.showMessageDialog(this, "Due to an issue, IAG0010Client restart.", "IAG0010Client Failed", JOptionPane.ERROR_MESSAGE);
+    }
 }
-
